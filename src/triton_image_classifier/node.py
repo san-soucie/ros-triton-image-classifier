@@ -7,7 +7,8 @@ import tritonclient.grpc as grpcclient
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
 
-from .msg import Classification, ObjectHypothesisWithClassName
+from triton_api import Model, ImageInput, ClassificationOutput, ScalingMode, initialize_model
+from .msg import Classification
 
 
 class ImageClassifier:
@@ -22,22 +23,24 @@ class ImageClassifier:
         pass
 
 
-def on_image(classifier, class_pub, image_msg):
+def on_image(model, class_pub, image_msg):
     # Use the cv_bridge to convert to an OpenCV image object
     img = CvBridge().imgmsg_to_cv2(image_msg)
     
     # Ask the classifier to 
-    
+    result = model.infer(img)
+    if len(result[0]) != 1 or len(result[0][0]) != 1:
+        rospy.logerr('Unexpected result from classifier: %s', r)
+        return
+    class_pub.publish(result[0][0])
 
 
 def main():
     rospy.init_node('classifier', anonymous=True)
 
-    # Connect to the Triton Inference Server
-    classifier = ImageClassifier(
-        url=rospy.get_param('~server'),
-        model=rospy.get_param('~model'),
-    )
+    model = initialize_model(rospy.get_param('~triton_server_url'), rospy.get_param('~classifier_model'))
+    model.input = ImageInput(scaling=ScalingMode.INCEPTION)
+    model.output = ClassificationOutput(classes=1)
 
     # Advertise that we will publish a "/class" subtopic of the image topic
     class_pub = rospy.Publisher(
@@ -50,7 +53,7 @@ def main():
     rospy.Subscriber(
         rospy.get_param('~topic') + '/raw',
         Image,
-        functools.partial(on_image, classifier, class_pub)
+        functools.partial(on_image, model, class_pub)
     )
 
     rospy.spin()
