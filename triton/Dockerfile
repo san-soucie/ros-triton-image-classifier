@@ -29,6 +29,7 @@ RUN apt update \
         libarchive-dev \
         libb64-0d \
         libomp5 \
+        libomp-dev \
         libopenblas-dev \
         libre2-4 \
         libssl1.1 \
