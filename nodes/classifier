@@ -4,8 +4,8 @@ import rospy
 from triton_image_classifier import node
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
-        triton_image_classifier.node.main()
+        node.main()
     except rospy.ROSInterruptException:
         pass
